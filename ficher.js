@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         ADblock plus pro max ;) (Gemini Corrigé)
+// @name         ADblock plus pro max ;)
 // @namespace    http://tampermonkey.net/
 // @version      2.6
-// @description  Extrait et répond aux QCM via Gemini. Corrige le bug d'injection pour les réponses multiples (ex: "B D").
+// @description  .
 // @author       You
 // @match        *://*/*
 // @grant        none
@@ -15,8 +15,8 @@
     // === CONFIGURATION GLOBALE ===
     // =============================
     // 1) API Gemini
-    const GEMINI_API_KEY = "AIzaSyBKP4_qCOj9TTwfzi1Bw-97L7ceqoDW9Do";
-    const MODEL = "gemini-2.5-flash"; // Modèle corrigé de "2.5-flash" qui n'existe pas
+    const GEMINI_API_KEY = "aaaaaaaaaaaaaaaaaa";
+    const MODEL = "gemini-3.5-flash"; // Modèle corrigé de "2.5-flash" qui n'existe pas
 
     // 2) Apparence de l’injection
     const opacityLevel = 0.03; // 0 (invisible) -> 1 (opaque)
@@ -115,14 +115,14 @@
     // ===========================
     async function askGeminiWithQcmPayload(data) {
         // <<< CORRIGÉ : Template literals corrects
-        const prompt = `Contexte (si présent): ${data.introText || "(aucun)"} Question: ${data.questionText} Options: ${data.options.map((o, i) => `- ${o}`).join('\n') || "(aucune)"} Image: ${data.imgUrl} Consigne: Répondre uniquement par la ou les bonne reponse entre les proposition (lettre a b c d ou si cets une valeur donne uniquement la valeur sans explicaion sans dire "Les réponses correctes sont : " juste les ou la letre ou la valeur rien de plus )., sans phrase complémentaire.`;
-        console.log(`${LOG_TAG} [Gemini Debug] Contenu envoyé :`, prompt);
+        const prompt = `Contexte (si présent): ${data.introText || "(aucun)"} Question: ${data.questionText} Options: ${data.options.map((o, i) => `- ${o}`).join('\n') || "(aucune)"} Image: \${data.imgUrl} Consigne: Répondre uniquement par la ou les bonne reponse entre les proposition (lettre a b c d ou si cets une valeur donne uniquement la valeur sans explicaion sans dire "Les réponses correctes sont : " juste les ou la letre ou la valeur rien de plus )., sans phrase complémentaire.`;
+        console.log(`\${LOG_TAG} [Gemini Debug] Contenu envoyé :`, prompt);
         try {
             const response = await fetch( `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], }), } );
             if (!response.ok) {
                 const errText = await response.text();
                 if (response.status === 429) {
-                    let retryAfterSeconds = Number(response.headers.get("Retry-After")) || 60;
+                    let retryAfterSeconds = 60;
                     try {
                         const errorData = JSON.parse(errText);
                         const retryDelay = errorData?.error?.details?.find(d => d['@type'] === 'type.googleapis.com/google.rpc.RetryInfo')?.retryDelay;
@@ -144,7 +144,7 @@
             return reply;
         } catch (error) {
             console.error(`${LOG_TAG} Erreur API Gemini :`, error);
-            return `Erreur : ${error.message}`;
+            return `Erreur : \${error.message}`;
         }
     }
 
@@ -192,11 +192,11 @@
                 // Span semi-transparent
                 const span = document.createElement('span');
                 span.textContent = ` ${valueText}`; // Affiche le texte original, non nettoyé
-                span.style.opacity = String(opacityLevel);
+                span.style.setProperty('color', `rgba(0, 0, 0, ${opacityLevel})`, 'important');
                 span.style.display = 'inline';
                 span.style.marginLeft = '6px';
                 span.style.fontSize = '0.9em';
-                span.style.color = '#000';
+                //span.style.color = '#000';
                 span.style.verticalAlign = 'baseline';
                 span.style.pointerEvents = 'none';
                 span.style.transition = 'opacity 0.3s ease';
@@ -225,6 +225,11 @@
     style.textContent = `
         ${ICON_SELECTOR} { cursor: pointer !important; transition: transform 0.2s ease, opacity 0.2s ease !important; }
         ${ICON_SELECTOR}:hover { transform: scale(1.15); opacity: 0.8; }
+        [data-answer] { color: rgba(0, 0, 0, 0.03) !important; }
+        @media (prefers-color-scheme: dark) {
+            [data-answer] { color: rgba(255, 255, 255, 0.03) !important; }
+        }
+        [data-answer]::selection { background: #0078d7 !important; color: white !important; }
     `;
     document.head.appendChild(style);
 
@@ -277,11 +282,9 @@
         }
 
         // 5) Restaure l’UI de l’icône
-        if (!isRateLimited) {
-            icon.style.opacity = prevOpacity || "1";
-            icon.style.cursor = prevCursor || "pointer";
-            icon.title = prevTitle || "Clique pour interroger";
-        }
+        icon.style.opacity = prevOpacity || "1";
+        icon.style.cursor = prevCursor || "pointer";
+        icon.title = prevTitle || "Clique pour interroger";
     }
 
     function bindIcons() {
